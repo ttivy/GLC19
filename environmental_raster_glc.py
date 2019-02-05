@@ -95,7 +95,7 @@ class Raster(object):
             src = rasterio.open(path + '/' + self.name + '.tif', nodata=nan)
         warnings.filterwarnings("default")
 
-        if src.meta['crs'] is None:
+        if os.path.isfile(path + '/' + 'GeoMetaData.csv'):
 
             with open(path + '/' + 'GeoMetaData.csv') as f:
                 metadata = f.read()
