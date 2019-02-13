@@ -165,8 +165,8 @@ class Raster(object):
         :param cancel_one_hot: if True, one hot encoding will not be used
         :return: a patch
         """
-        row_num = int(self.n_rows - (item[0] - self.y_min) / self.y_resolution)
-        col_num = int((item[1] - self.x_min) / self.x_resolution)
+        row_num = np.clip(int(self.n_rows - (item[0] - self.y_min) / self.y_resolution), 0, self.n_rows)
+        col_num = np.clip(int(self.n_cols - (item[1] - self.x_min) / self.x_resolution), 0, self.n_cols)
 
         # environmental vector
         if self.size == 1:
@@ -178,8 +178,17 @@ class Raster(object):
         # environmental tensor
         else:
             half_size = int(self.size/2)
-            patch = self.raster[row_num-half_size:row_num+half_size,
-                    col_num - half_size:col_num+half_size].astype(np.float)
+            row_min, row_max = row_num - half_size, row_num + half_size
+            col_min, col_max = col_num - half_size, col_num + half_size
+            patch = self.raster[slice(*np.clip([row_min, row_max], 0, self.n_rows)),
+                                slice(*np.clip([col_min, col_max], 0, self.n_cols))].astype(np.float)
+
+            # padding
+            if patch.shape[-2:] != ((self.size,) * 2):
+                row_pad = np.clip([0 - row_min, row_max - self.n_rows], 0, None)
+                col_pad = np.clip([0 - col_min, col_max - self.n_cols], 0, None)
+                patch = np.pad(patch, (row_pad, col_pad), 'constant', constant_values=self.no_data)
+
             if self.one_hot and not cancel_one_hot:
                 patch = np.array([(patch == i).astype(float) for i in self.unique_values])
             else:
